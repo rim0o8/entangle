@@ -1,6 +1,12 @@
 node_modules
 dist
-.env*
+.env
+.env.*
+!.env.example
 .entangle/
 coverage
 .DS_Store
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm

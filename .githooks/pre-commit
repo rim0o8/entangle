@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Entangle pre-commit hook. SPEC §6 / §7 secrets rule.
+# Blocks secrets, not documentation that describes the patterns.
+set -euo pipefail
+
+# Hard-block .env if staged
+if git diff --cached --name-only | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$' >/dev/null; then
+  echo 'refused: .env file staged for commit'
+  exit 1
+fi
+
+# Scan staged diff lines (added only), excluding files that are allowed to
+# discuss the patterns literally.
+violations=$(git diff --cached -U0 \
+  ':(exclude)*.md' \
+  ':(exclude).githooks/*' \
+  ':(exclude).env.example' \
+  2>/dev/null \
+  | grep -E '^\+' \
+  | grep -v '^+++' \
+  | grep -E '(\+1-[0-9]|\+81-[0-9]|sk-ant-[A-Za-z0-9_-]{10}|PHOTON_API_KEY=[A-Za-z0-9_-]{8}|PHOTON_PROJECT_ID=[A-Fa-f0-9-]{8})' || true)
+
+if [ -n "${violations}" ]; then
+  echo 'refused: staged diff contains forbidden secret pattern'
+  echo "${violations}"
+  echo 'fix: scrub the source of the leak; do not disable this hook.'
+  exit 1
+fi
+exit 0
