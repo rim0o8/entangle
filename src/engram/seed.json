@@ -5,7 +5,8 @@
       "displayName": "Yuri",
       "handles": [
         { "platform": "imessage", "handle": "+81-9012345678" },
-        { "platform": "telegram", "handle": "@yuri" }
+        { "platform": "telegram", "handle": "@yuri" },
+        { "platform": "whatsapp", "handle": "+81-9012345678" }
       ],
       "preferredPlatforms": ["imessage", "telegram", "whatsapp", "slack", "discord"],
       "preferences": { "city": "tokyo", "loves": "jazz" }
