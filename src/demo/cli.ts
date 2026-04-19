@@ -2,10 +2,10 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createAnthropicHumanizer, createStubHumanizer } from '../core/humanize.js';
+import { createHumanizerFromEnv } from '../core/humanize.js';
 import { EngramLite } from '../engram/lite.js';
 import { loadSeed } from '../engram/seed.js';
-import { createMockChannel } from '../spectrum/mock.js';
+import { createTestMessenger } from '../messaging/test.js';
 import { type ScenarioId, createOrchestrator } from './orchestrator.js';
 import { createDemoServer } from './server.js';
 
@@ -39,33 +39,19 @@ function parseArgs(argv: readonly string[]): CliArgs {
   return args;
 }
 
-function humanizerFactory(): ReturnType<typeof createStubHumanizer> {
-  if (process.env.ANTHROPIC_API_KEY) {
-    return createAnthropicHumanizer({ apiKey: process.env.ANTHROPIC_API_KEY });
-  }
-  return createStubHumanizer(
-    (prompt) =>
-      prompt
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0)
-        .slice(-1)[0] ?? 'hi'
-  );
-}
-
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const tempDir = mkdtempSync(join(tmpdir(), `entangle-demo-${args.scenario}-`));
   const dbPath = join(tempDir, 'demo.sqlite');
   const engram = new EngramLite(dbPath);
-  loadSeed(engram, SEED_PATH);
+  loadSeed(engram, { path: SEED_PATH, profile: 'test' });
 
-  const channel = createMockChannel();
-  const humanize = humanizerFactory();
+  const messenger = createTestMessenger();
+  const humanize = createHumanizerFromEnv();
   const orchestrator = createOrchestrator({
     scenario: args.scenario,
     graph: engram,
-    channel,
+    messenger,
     humanize,
     pauseMs: args.pause,
   });
@@ -75,7 +61,6 @@ async function main(): Promise<void> {
   process.stdout.write(`Demo WS running on ws://localhost:${server.port}\n`);
   process.stdout.write(`Open http://localhost:5173/${args.scenario}\n`);
 
-  // Log event types so the CLI output is a smoke-testable summary.
   orchestrator.onEvent((e) => {
     const label = e.type === 'entangle' ? `entangle:${e.payload.type}` : e.payload.type;
     process.stdout.write(`event ${label}\n`);

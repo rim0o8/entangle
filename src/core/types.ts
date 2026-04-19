@@ -1,4 +1,5 @@
 import * as z from 'zod/v3';
+import type { Person, PlatformHandle } from '../engram/types.js';
 
 export const IntentKindSchema = z.enum(['collaborate', 'reconnect', 'custom']);
 export type IntentKind = z.infer<typeof IntentKindSchema>;
@@ -66,7 +67,43 @@ export type EntangleEvent =
   | { type: 'suppressed'; at: Date; probeId: string; candidateId: string; reason: string }
   | { type: 'probed'; at: Date; probeId: string; candidateId: string; message: string }
   | { type: 'response'; at: Date; probeId: string; from: string; response: 'yes' | 'no' }
-  | { type: 'bubble-up'; at: Date; probeId: string; yesResponders: string[] }
+  | {
+      type: 'bubble-up';
+      at: Date;
+      probeId: string;
+      yesResponders: string[];
+      message: string;
+    }
   | { type: 'thread-opened'; at: Date; participants: string[]; context: string };
 
 export type EntangleEventType = EntangleEvent['type'];
+
+export interface IntentStore {
+  put(intent: SealedIntent): Promise<void>;
+  findReverse(intent: SealedIntent): Promise<SealedIntent | null>;
+  get(id: string): Promise<SealedIntent | null>;
+  setState(id: string, state: SealedIntent['state']): Promise<void>;
+}
+
+export interface BroadcastStore {
+  put(probe: BroadcastProbe): Promise<void>;
+  recordResponse(
+    probeId: string,
+    personId: string,
+    response: 'yes' | 'no' | 'silent'
+  ): Promise<void>;
+  get(id: string): Promise<BroadcastProbe | null>;
+}
+
+export interface Humanizer {
+  renderReveal(intent: SealedIntent, counterpart: SealedIntent): Promise<string>;
+  renderProbe(probe: BroadcastProbe, candidate: Person): Promise<string>;
+  renderBubbleUp(probe: BroadcastProbe, yesResponders: Person[]): Promise<string>;
+}
+
+export type MessageKind = 'prompt' | 'notice' | 'confirm';
+
+export interface Messenger {
+  send(to: PlatformHandle, message: { text: string; kind?: MessageKind }): Promise<void>;
+  onReceive(handler: (from: PlatformHandle, text: string) => Promise<void>): void;
+}

@@ -1,6 +1,6 @@
 import * as z from 'zod/v3';
 
-export const PlatformIdSchema = z.enum(['imessage', 'whatsapp', 'telegram', 'slack', 'discord']);
+export const PlatformIdSchema = z.enum(['imessage']);
 
 export type PlatformId = z.infer<typeof PlatformIdSchema>;
 
@@ -11,12 +11,18 @@ export const PlatformHandleSchema = z.object({
 
 export type PlatformHandle = z.infer<typeof PlatformHandleSchema>;
 
+export const AvailabilitySchema = z.enum(['free', 'busy', 'traveling', 'declined-recently']);
+
+export type Availability = z.infer<typeof AvailabilitySchema>;
+
 export const PersonSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
   handles: z.array(PlatformHandleSchema),
   preferredPlatforms: z.array(PlatformIdSchema),
   preferences: z.record(z.string(), z.unknown()),
+  availability: AvailabilitySchema.optional(),
+  real: z.boolean().optional(),
 });
 
 export type Person = z.infer<typeof PersonSchema>;

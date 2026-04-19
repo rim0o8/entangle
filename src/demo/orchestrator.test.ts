@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createStubHumanizer } from '../core/humanize.js';
 import { EngramLite } from '../engram/lite.js';
 import { loadSeed } from '../engram/seed.js';
-import { createMockChannel } from '../spectrum/mock.js';
+import { createTestMessenger } from '../messaging/test.js';
 import { type OrchestratorEvent, createOrchestrator } from './orchestrator.js';
 
 const REPO_ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
@@ -23,7 +23,7 @@ describe('orchestrator', () => {
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), 'entangle-orchestrator-test-'));
     engram = new EngramLite(join(tempDir, 'db.sqlite'));
-    loadSeed(engram, SEED_PATH);
+    loadSeed(engram, { path: SEED_PATH, profile: 'test' });
   });
 
   afterEach(() => {
@@ -32,12 +32,12 @@ describe('orchestrator', () => {
   });
 
   it('double-yes emits sealed, sealed, mutual, reveal, reveal, thread-opened in order', async () => {
-    const channel = createMockChannel();
-    const humanize = createStubHumanizer(() => 'mutual vibes');
+    const messenger = createTestMessenger();
+    const humanize = createStubHumanizer();
     const orchestrator = createOrchestrator({
       scenario: 'double-yes',
       graph: engram,
-      channel,
+      messenger,
       humanize,
       pauseMs: 0,
     });
@@ -59,12 +59,12 @@ describe('orchestrator', () => {
   });
 
   it('quiet-broadcast emits broadcast-started, 17 suppressed, 3 probed, 3 response, bubble-up, thread-opened', async () => {
-    const channel = createMockChannel();
-    const humanize = createStubHumanizer(() => 'jazz tonight?');
+    const messenger = createTestMessenger();
+    const humanize = createStubHumanizer();
     const orchestrator = createOrchestrator({
       scenario: 'quiet-broadcast',
       graph: engram,
-      channel,
+      messenger,
       humanize,
       pauseMs: 0,
     });
@@ -81,18 +81,17 @@ describe('orchestrator', () => {
     expect(types.filter((t) => t === 'bubble-up')).toHaveLength(1);
     expect(types.filter((t) => t === 'thread-opened')).toHaveLength(1);
 
-    // Broadcast-started must come first, thread-opened last.
     expect(types[0]).toBe('broadcast-started');
     expect(types[types.length - 1]).toBe('thread-opened');
   });
 
   it('restart() resets event log and replays from beat 1', async () => {
-    const channel = createMockChannel();
-    const humanize = createStubHumanizer(() => 'hey');
+    const messenger = createTestMessenger();
+    const humanize = createStubHumanizer();
     const orchestrator = createOrchestrator({
       scenario: 'double-yes',
       graph: engram,
-      channel,
+      messenger,
       humanize,
       pauseMs: 0,
     });
@@ -103,17 +102,16 @@ describe('orchestrator', () => {
 
     await orchestrator.restart();
     const secondSnapshot = orchestrator.snapshot();
-    // Fresh log after restart: length should match the single-run count (no double-append).
     expect(secondSnapshot.length).toBe(firstSnapshotLen);
   });
 
   it('pause() halts play until resume()', async () => {
-    const channel = createMockChannel();
-    const humanize = createStubHumanizer(() => 'hey');
+    const messenger = createTestMessenger();
+    const humanize = createStubHumanizer();
     const orchestrator = createOrchestrator({
       scenario: 'double-yes',
       graph: engram,
-      channel,
+      messenger,
       humanize,
       pauseMs: 20,
     });

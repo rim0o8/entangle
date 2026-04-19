@@ -1,15 +1,15 @@
 import { nanoid } from 'nanoid';
 import type { IdentityGraph, Person } from '../engram/types.js';
-import type { Channel } from '../spectrum/types.js';
 import type { EventLog } from './events.js';
-import type { Humanizer } from './humanize.js';
-import type { BroadcastStore, IntentStore } from './store.js';
 import {
   BroadcastInputSchema,
   type BroadcastProbe,
-  type EntangleEvent,
+  type BroadcastStore,
+  type Humanizer,
   IntentInputSchema,
   type IntentKind,
+  type IntentStore,
+  type Messenger,
   type SealedIntent,
   type Urgency,
 } from './types.js';
@@ -18,14 +18,14 @@ const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 
 export interface SealedIntentDeps {
   graph: IdentityGraph;
-  channel: Channel;
+  messenger: Messenger;
   store: IntentStore;
   events: EventLog;
 }
 
 export interface DetectMutualDeps {
   graph: IdentityGraph;
-  channel: Channel;
+  messenger: Messenger;
   store: IntentStore;
   events: EventLog;
   humanize: Humanizer;
@@ -33,7 +33,7 @@ export interface DetectMutualDeps {
 
 export interface QuietBroadcastDeps {
   graph: IdentityGraph;
-  channel: Channel;
+  messenger: Messenger;
   store: BroadcastStore;
   events: EventLog;
   humanize: Humanizer;
@@ -74,11 +74,10 @@ export async function sealedIntent(
     state: 'sealed',
   };
 
-  deps.store.save(intent);
-  const event: EntangleEvent = { type: 'sealed', at: new Date(), intent };
-  deps.events.emit(event);
+  await deps.store.put(intent);
+  deps.events.emit({ type: 'sealed', at: new Date(), intent });
 
-  // Critical: no channel send. Intent stays invisible until mutual detection.
+  // Critical: no messenger send. Intent stays invisible until mutual detection.
   return intent;
 }
 
@@ -118,29 +117,29 @@ export async function detectMutual(
   intent: SealedIntent
 ): Promise<DetectMutualResult> {
   return withPairLock(intent.ownerPersonId, intent.targetPersonId, async () => {
-    // Re-read both to ensure current state before committing match.
-    const self = deps.store.get(intent.id);
+    const self = await deps.store.get(intent.id);
     if (!self || self.state !== 'sealed') {
       return { matched: false };
     }
 
-    const reverse = deps.store.findReverse({
-      ownerId: self.ownerPersonId,
-      targetId: self.targetPersonId,
-      kind: self.kind,
-    });
+    const reverse = await deps.store.findReverse(self);
     if (!reverse) {
       return { matched: false };
     }
 
-    // Atomically flip both from sealed -> matched.
-    const selfNow = deps.store.get(self.id);
-    const revNow = deps.store.get(reverse.id);
+    // Re-read both to verify state before committing match.
+    const [selfNow, revNow] = await Promise.all([
+      deps.store.get(self.id),
+      deps.store.get(reverse.id),
+    ]);
     if (!selfNow || !revNow || selfNow.state !== 'sealed' || revNow.state !== 'sealed') {
       return { matched: false };
     }
-    const matchedSelf = deps.store.update(selfNow.id, { state: 'matched' });
-    const matchedRev = deps.store.update(revNow.id, { state: 'matched' });
+
+    await deps.store.setState(selfNow.id, 'matched');
+    await deps.store.setState(revNow.id, 'matched');
+    const matchedSelf: SealedIntent = { ...selfNow, state: 'matched' };
+    const matchedRev: SealedIntent = { ...revNow, state: 'matched' };
 
     deps.events.emit({
       type: 'mutual-detected',
@@ -149,11 +148,6 @@ export async function detectMutual(
       b: matchedRev,
     });
 
-    const [platformForSelfOwner, platformForRevOwner] = await Promise.all([
-      deps.graph.preferredPlatformBetween(matchedSelf.ownerPersonId, matchedSelf.targetPersonId),
-      deps.graph.preferredPlatformBetween(matchedRev.ownerPersonId, matchedRev.targetPersonId),
-    ]);
-
     const [selfOwnerPerson, revOwnerPerson] = await Promise.all([
       deps.graph.getPerson(matchedSelf.ownerPersonId),
       deps.graph.getPerson(matchedRev.ownerPersonId),
@@ -161,15 +155,21 @@ export async function detectMutual(
     if (!selfOwnerPerson) throw new Error(`unknown person: ${matchedSelf.ownerPersonId}`);
     if (!revOwnerPerson) throw new Error(`unknown person: ${matchedRev.ownerPersonId}`);
 
-    const selfOwnerHandle = selfOwnerPerson.handles.find((h) => h.platform === platformForRevOwner);
-    const revOwnerHandle = revOwnerPerson.handles.find((h) => h.platform === platformForSelfOwner);
-    if (!selfOwnerHandle) throw new Error(`no handle for ${selfOwnerPerson.id}`);
-    if (!revOwnerHandle) throw new Error(`no handle for ${revOwnerPerson.id}`);
+    const [platformForRevOwner, platformForSelfOwner] = await Promise.all([
+      deps.graph.preferredPlatformBetween(matchedSelf.ownerPersonId, matchedSelf.targetPersonId),
+      deps.graph.preferredPlatformBetween(matchedRev.ownerPersonId, matchedRev.targetPersonId),
+    ]);
 
-    const selfMessage = await deps.humanize(
-      buildRevealPrompt(selfOwnerPerson, revOwnerPerson, matchedSelf)
+    const revOwnerHandle = revOwnerPerson.handles.find((h) => h.platform === platformForRevOwner);
+    const selfOwnerHandle = selfOwnerPerson.handles.find(
+      (h) => h.platform === platformForSelfOwner
     );
-    await deps.channel.send(revOwnerHandle, { text: selfMessage, kind: 'notice' });
+    if (!revOwnerHandle) throw new Error(`no handle for ${revOwnerPerson.id}`);
+    if (!selfOwnerHandle) throw new Error(`no handle for ${selfOwnerPerson.id}`);
+
+    // Render + send reveal to the counterpart owner (target of matchedSelf).
+    const selfMessage = await deps.humanize.renderReveal(matchedSelf, matchedRev);
+    await deps.messenger.send(revOwnerHandle, { text: selfMessage, kind: 'notice' });
     deps.events.emit({
       type: 'reveal',
       at: new Date(),
@@ -178,10 +178,8 @@ export async function detectMutual(
       message: selfMessage,
     });
 
-    const revMessage = await deps.humanize(
-      buildRevealPrompt(revOwnerPerson, selfOwnerPerson, matchedRev)
-    );
-    await deps.channel.send(selfOwnerHandle, { text: revMessage, kind: 'notice' });
+    const revMessage = await deps.humanize.renderReveal(matchedRev, matchedSelf);
+    await deps.messenger.send(selfOwnerHandle, { text: revMessage, kind: 'notice' });
     deps.events.emit({
       type: 'reveal',
       at: new Date(),
@@ -190,20 +188,11 @@ export async function detectMutual(
       message: revMessage,
     });
 
-    deps.store.update(matchedSelf.id, { state: 'revealed' });
-    deps.store.update(matchedRev.id, { state: 'revealed' });
+    await deps.store.setState(matchedSelf.id, 'revealed');
+    await deps.store.setState(matchedRev.id, 'revealed');
 
-    return { matched: true, counterpart: matchedRev };
+    return { matched: true, counterpart: { ...matchedRev, state: 'revealed' } };
   });
-}
-
-function buildRevealPrompt(owner: Person, target: Person, intent: SealedIntent): string {
-  return [
-    `Agent decision: mutual intent detected between ${owner.displayName} and ${target.displayName}.`,
-    `Owner (${owner.displayName}) original phrasing: "${intent.payload}".`,
-    `Kind: ${intent.kind}. Urgency: ${intent.urgency}.`,
-    `Write a short warm message addressed to ${target.displayName} revealing that ${owner.displayName} also wanted this.`,
-  ].join('\n');
 }
 
 export type FilterVerdict = 'suppress' | 'deliver';
@@ -222,7 +211,7 @@ export async function filterCandidate(
   const candidate = await deps.graph.getPerson(candidateId);
   if (!candidate) return { verdict: 'suppress', reason: 'unknown' };
 
-  const availability = candidate.preferences.availability;
+  const availability = candidate.availability;
   if (availability === 'busy') return { verdict: 'suppress', reason: 'busy' };
   if (availability === 'traveling') return { verdict: 'suppress', reason: 'traveling' };
   if (availability === 'declined-recently') {
@@ -260,7 +249,7 @@ export async function quietBroadcast(
     responses: initialResponses,
   };
 
-  deps.store.save(probe);
+  await deps.store.put(probe);
   deps.events.emit({
     type: 'broadcast-started',
     at: new Date(),
@@ -300,8 +289,8 @@ export async function quietBroadcast(
       continue;
     }
 
-    const message = await deps.humanize(buildProbePrompt(input.owner, candidate, probe));
-    await deps.channel.send(handle, { text: message, kind: 'prompt' });
+    const message = await deps.humanize.renderProbe(probe, candidate);
+    await deps.messenger.send(handle, { text: message, kind: 'prompt' });
     deps.events.emit({
       type: 'probed',
       at: new Date(),
@@ -314,27 +303,18 @@ export async function quietBroadcast(
   return probe;
 }
 
-function buildProbePrompt(owner: Person, candidate: Person, probe: BroadcastProbe): string {
-  const where = probe.constraints.where ? ` in ${probe.constraints.where}` : '';
-  return [
-    `Agent decision: quiet broadcast from ${owner.displayName} to ${candidate.displayName}.`,
-    `Context: ${owner.displayName}'s wondering if you're around for ${probe.payload}${where} ${probe.constraints.when}. No pressure.`,
-    `Write a gentle, low-pressure probe addressed to ${candidate.displayName}.`,
-  ].join('\n');
-}
-
 export interface RecordBroadcastResponseDeps {
   store: BroadcastStore;
   events: EventLog;
 }
 
-export function recordBroadcastResponse(
+export async function recordBroadcastResponse(
   deps: RecordBroadcastResponseDeps,
   probeId: string,
   candidateId: string,
   response: 'yes' | 'no'
-): BroadcastProbe {
-  const updated = deps.store.recordResponse(probeId, candidateId, response);
+): Promise<BroadcastProbe> {
+  await deps.store.recordResponse(probeId, candidateId, response);
   deps.events.emit({
     type: 'response',
     at: new Date(),
@@ -342,46 +322,60 @@ export function recordBroadcastResponse(
     from: candidateId,
     response,
   });
+  const updated = await deps.store.get(probeId);
+  if (!updated) throw new Error(`probe not found: ${probeId}`);
   return updated;
 }
 
 export interface FinalizeBroadcastDeps {
+  graph: IdentityGraph;
   store: BroadcastStore;
   events: EventLog;
+  humanize: Humanizer;
 }
 
 export interface FinalizeResult {
   yesResponders: string[];
   threadOpened: boolean;
+  message: string;
 }
 
-export function finalizeBroadcast(
+export async function finalizeBroadcast(
   deps: FinalizeBroadcastDeps,
   probeId: string,
   threadContext?: string
-): FinalizeResult {
-  const probe = deps.store.get(probeId);
+): Promise<FinalizeResult> {
+  const probe = await deps.store.get(probeId);
   if (!probe) throw new Error(`probe not found: ${probeId}`);
-  const yesResponders = Object.entries(probe.responses)
+  const yesResponderIds = Object.entries(probe.responses)
     .filter(([, r]) => r === 'yes')
     .map(([id]) => id);
+
+  const yesResponders: Person[] = [];
+  for (const id of yesResponderIds) {
+    const p = await deps.graph.getPerson(id);
+    if (p) yesResponders.push(p);
+  }
+
+  const message = await deps.humanize.renderBubbleUp(probe, yesResponders);
 
   deps.events.emit({
     type: 'bubble-up',
     at: new Date(),
     probeId,
-    yesResponders,
+    yesResponders: yesResponderIds,
+    message,
   });
 
-  if (yesResponders.length > 0) {
+  if (yesResponderIds.length > 0) {
     deps.events.emit({
       type: 'thread-opened',
       at: new Date(),
-      participants: [probe.ownerPersonId, ...yesResponders],
+      participants: [probe.ownerPersonId, ...yesResponderIds],
       context: threadContext ?? probe.payload,
     });
-    return { yesResponders, threadOpened: true };
+    return { yesResponders: yesResponderIds, threadOpened: true, message };
   }
 
-  return { yesResponders, threadOpened: false };
+  return { yesResponders: yesResponderIds, threadOpened: false, message };
 }

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import Database from 'better-sqlite3';
 import type {
+  Availability,
   IdentityGraph,
   Person,
   PlatformHandle,
@@ -9,13 +10,15 @@ import type {
   Relationship,
   RelationshipType,
 } from './types.js';
-import { PlatformIdSchema, RelationshipTypeSchema } from './types.js';
+import { AvailabilitySchema, PlatformIdSchema, RelationshipTypeSchema } from './types.js';
 
 interface PersonRow {
   id: string;
   display_name: string;
   preferred_platforms: string;
   preferences: string;
+  availability: string | null;
+  real: number;
 }
 
 interface HandleRow {
@@ -54,7 +57,9 @@ export class EngramLite implements IdentityGraph {
         id TEXT PRIMARY KEY,
         display_name TEXT NOT NULL,
         preferred_platforms TEXT NOT NULL,
-        preferences TEXT NOT NULL
+        preferences TEXT NOT NULL,
+        availability TEXT,
+        real INTEGER NOT NULL DEFAULT 0
       );
 
       CREATE TABLE IF NOT EXISTS handles (
@@ -85,12 +90,14 @@ export class EngramLite implements IdentityGraph {
 
   upsertPerson(person: Person): void {
     const insertPerson = this.db.prepare(
-      `INSERT INTO persons (id, display_name, preferred_platforms, preferences)
-       VALUES (@id, @displayName, @preferredPlatforms, @preferences)
+      `INSERT INTO persons (id, display_name, preferred_platforms, preferences, availability, real)
+       VALUES (@id, @displayName, @preferredPlatforms, @preferences, @availability, @real)
        ON CONFLICT(id) DO UPDATE SET
          display_name = excluded.display_name,
          preferred_platforms = excluded.preferred_platforms,
-         preferences = excluded.preferences`
+         preferences = excluded.preferences,
+         availability = excluded.availability,
+         real = excluded.real`
     );
     const deleteHandles = this.db.prepare('DELETE FROM handles WHERE person_id = ?');
     const insertHandle = this.db.prepare(
@@ -103,6 +110,8 @@ export class EngramLite implements IdentityGraph {
         displayName: person.displayName,
         preferredPlatforms: JSON.stringify(person.preferredPlatforms),
         preferences: JSON.stringify(person.preferences),
+        availability: person.availability ?? null,
+        real: person.real ? 1 : 0,
       });
       deleteHandles.run(person.id);
       for (const h of person.handles) {
@@ -137,7 +146,7 @@ export class EngramLite implements IdentityGraph {
   private getPersonSync(id: string): Person | null {
     const row = this.db
       .prepare(
-        'SELECT id, display_name, preferred_platforms, preferences FROM persons WHERE id = ?'
+        'SELECT id, display_name, preferred_platforms, preferences, availability, real FROM persons WHERE id = ?'
       )
       .get(id) as PersonRow | undefined;
     if (!row) return null;
@@ -210,17 +219,9 @@ export class EngramLite implements IdentityGraph {
     return people;
   }
 
-  async preferredPlatformBetween(fromId: string, toId: string): Promise<PlatformId> {
-    const from = this.getPersonSync(fromId);
-    const to = this.getPersonSync(toId);
-    if (!from) throw new Error(`unknown person: ${fromId}`);
-    if (!to) throw new Error(`unknown person: ${toId}`);
-
-    const toPlatforms = new Set(to.handles.map((h) => h.platform));
-    for (const platform of from.preferredPlatforms) {
-      if (toPlatforms.has(platform)) return platform;
-    }
-    throw new Error('no shared platform');
+  async preferredPlatformBetween(_fromId: string, _toId: string): Promise<PlatformId> {
+    // v2 §6 Phase 1: returns 'imessage' always for now.
+    return 'imessage';
   }
 
   private hydratePerson(row: PersonRow): Person {
@@ -236,13 +237,19 @@ export class EngramLite implements IdentityGraph {
       platform: PlatformIdSchema.parse(h.platform),
       handle: h.handle,
     }));
-    return {
+    const availability: Availability | undefined = row.availability
+      ? AvailabilitySchema.parse(row.availability)
+      : undefined;
+    const person: Person = {
       id: row.id,
       displayName: row.display_name,
       handles,
       preferredPlatforms,
       preferences,
     };
+    if (availability) person.availability = availability;
+    if (row.real) person.real = true;
+    return person;
   }
 
   private hydrateRelationship(row: RelationshipRow): Relationship {

@@ -1,35 +1,6 @@
-// Spectrum — channels and events
-export type {
-  Channel,
-  ChannelMessage,
-  ChannelReceiver,
-  MessageKind,
-} from './spectrum/types.js';
-export {
-  type ChannelEvent,
-  type ChannelEventListener,
-  type MockChannel,
-  type MockChannelOptions,
-  type SentRecord,
-  createMockChannel,
-} from './spectrum/mock.js';
-export {
-  type TelegramBotLike,
-  type TelegramChannel,
-  type TelegramChannelOptions,
-  createTelegramChannel,
-} from './spectrum/telegram.js';
-export {
-  type ChildChannel,
-  type CompositeChannel,
-  type SelectChannelDeps,
-  type SelectedChannel,
-  createChannelFromEnv,
-  createCompositeChannel,
-} from './spectrum/select.js';
-
 // Engram — identity graph
 export type {
+  Availability,
   IdentityGraph,
   Person,
   PlatformHandle,
@@ -38,7 +9,13 @@ export type {
   RelationshipType,
 } from './engram/types.js';
 export { EngramLite } from './engram/lite.js';
-export { loadSeed, parseSeed, type SeedFile } from './engram/seed.js';
+export {
+  loadSeed,
+  parseSeed,
+  type LoadSeedOptions,
+  type SeedFile,
+  type SeedProfile,
+} from './engram/seed.js';
 
 // Core — protocol primitives
 export {
@@ -66,10 +43,15 @@ export type {
   BroadcastConstraints,
   BroadcastProbe,
   BroadcastResponse,
+  BroadcastStore,
   EntangleEvent,
   EntangleEventType,
+  Humanizer,
   IntentKind,
   IntentState,
+  IntentStore,
+  MessageKind,
+  Messenger,
   SealedIntent,
   Urgency,
 } from './core/types.js';
@@ -77,9 +59,8 @@ export type {
 export {
   createBroadcastStore,
   createIntentStore,
-  type BroadcastStore,
-  type IntentStore,
-} from './core/store.js';
+  type StoreOptions,
+} from './core/stores.js';
 
 // Event log — subscribe + emit
 export {
@@ -91,10 +72,20 @@ export {
 // Humanizer
 export {
   createAnthropicHumanizer,
+  createHumanizerFromEnv,
   createStubHumanizer,
-  type Humanizer,
   type AnthropicHumanizerOptions,
 } from './core/humanize.js';
+
+// Messaging — Messenger port and in-memory test impl
+export {
+  createTestMessenger,
+  type MessengerEvent,
+  type MessengerEventListener,
+  type SentRecord,
+  type TestMessenger,
+  type TestMessengerOptions,
+} from './messaging/test.js';
 
 // Demo — orchestrator + WS server
 export {

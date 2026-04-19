@@ -1,5 +1,7 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { type EventLog, createEventLog } from '../core/events.js';
-import type { Humanizer } from '../core/humanize.js';
 import {
   detectMutual,
   filterCandidate,
@@ -7,16 +9,16 @@ import {
   recordBroadcastResponse,
   sealedIntent,
 } from '../core/protocol.js';
-import { createBroadcastStore, createIntentStore } from '../core/store.js';
-import type { BroadcastProbe, EntangleEvent } from '../core/types.js';
+import { createBroadcastStore, createIntentStore } from '../core/stores.js';
+import type { BroadcastProbe, EntangleEvent, Humanizer } from '../core/types.js';
 import type { IdentityGraph, Person } from '../engram/types.js';
-import type { ChannelEvent, MockChannel } from '../spectrum/mock.js';
+import type { MessengerEvent, TestMessenger } from '../messaging/test.js';
 
 export type ScenarioId = 'double-yes' | 'quiet-broadcast';
 
 export type OrchestratorEvent =
   | { type: 'entangle'; payload: EntangleEvent; at: Date }
-  | { type: 'channel'; payload: ChannelEvent; at: Date };
+  | { type: 'messenger'; payload: MessengerEvent; at: Date };
 
 export type OrchestratorEventHandler = (event: OrchestratorEvent) => void;
 
@@ -25,7 +27,7 @@ export type OrchestratorState = 'idle' | 'playing' | 'paused' | 'done';
 export interface OrchestratorDeps {
   scenario: ScenarioId;
   graph: IdentityGraph;
-  channel: MockChannel;
+  messenger: TestMessenger;
   humanize: Humanizer;
   pauseMs?: number;
 }
@@ -45,10 +47,11 @@ interface InternalState {
   events: OrchestratorEvent[];
   handlers: Set<OrchestratorEventHandler>;
   pauseResolvers: Array<() => void>;
+  tempDir: string;
   intentStore: ReturnType<typeof createIntentStore>;
   broadcastStore: ReturnType<typeof createBroadcastStore>;
   eventLog: EventLog;
-  unsubChannel: () => void;
+  unsubMessenger: () => void;
   unsubEventLog: () => void;
 }
 
@@ -59,17 +62,19 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-function createInternalState(channel: MockChannel): InternalState {
+function createInternalState(messenger: TestMessenger): InternalState {
   const eventLog = createEventLog();
+  const tempDir = mkdtempSync(join(tmpdir(), 'entangle-orchestrator-'));
   const internal: InternalState = {
     state: 'idle',
     events: [],
     handlers: new Set(),
     pauseResolvers: [],
-    intentStore: createIntentStore(),
-    broadcastStore: createBroadcastStore(),
+    tempDir,
+    intentStore: createIntentStore({ dbPath: join(tempDir, 'intents.sqlite') }),
+    broadcastStore: createBroadcastStore({ dbPath: join(tempDir, 'broadcasts.sqlite') }),
     eventLog,
-    unsubChannel: () => {},
+    unsubMessenger: () => {},
     unsubEventLog: () => {},
   };
 
@@ -79,8 +84,8 @@ function createInternalState(channel: MockChannel): InternalState {
     for (const h of internal.handlers) h(record);
   });
 
-  internal.unsubChannel = channel.subscribe((e) => {
-    const record: OrchestratorEvent = { type: 'channel', payload: e, at: new Date() };
+  internal.unsubMessenger = messenger.subscribe((e) => {
+    const record: OrchestratorEvent = { type: 'messenger', payload: e, at: new Date() };
     internal.events.push(record);
     for (const h of internal.handlers) h(record);
   });
@@ -88,9 +93,15 @@ function createInternalState(channel: MockChannel): InternalState {
   return internal;
 }
 
+function teardown(internal: InternalState): void {
+  internal.unsubMessenger();
+  internal.unsubEventLog();
+  rmSync(internal.tempDir, { recursive: true, force: true });
+}
+
 export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
   const pauseMs = deps.pauseMs ?? 1500;
-  let internal = createInternalState(deps.channel);
+  let internal = createInternalState(deps.messenger);
 
   const waitIfPaused = async (): Promise<void> => {
     if (internal.state !== 'paused') return;
@@ -132,12 +143,10 @@ export function createOrchestrator(deps: OrchestratorDeps): Orchestrator {
   };
 
   const restart = async (): Promise<void> => {
-    // Teardown subscriptions and reset state so beats start fresh.
-    internal.unsubChannel();
-    internal.unsubEventLog();
-    deps.channel.clear();
+    teardown(internal);
+    deps.messenger.clear();
     const oldHandlers = internal.handlers;
-    internal = createInternalState(deps.channel);
+    internal = createInternalState(deps.messenger);
     internal.handlers = oldHandlers;
     await play();
   };
@@ -169,25 +178,18 @@ async function playDoubleYes(
   internal: InternalState,
   pauseBetweenBeats: () => Promise<void>
 ): Promise<void> {
-  const yuri = await deps.graph.resolveByHandle({
-    platform: 'imessage',
-    handle: '+81-9012345678',
-  });
-  const alex = await deps.graph.resolveByHandle({
-    platform: 'whatsapp',
-    handle: '+1-5551234567',
-  });
+  const yuri = await deps.graph.getPerson('yuri');
+  const alex = await deps.graph.getPerson('alex');
   if (!yuri || !alex) throw new Error('double-yes: cannot resolve yuri or alex');
 
   const entangleDeps = {
     graph: deps.graph,
-    channel: deps.channel,
+    messenger: deps.messenger,
     store: internal.intentStore,
     events: internal.eventLog,
     humanize: deps.humanize,
   };
 
-  // Beat 1: Yuri -> Alex sealed.
   await sealedIntent(entangleDeps, {
     from: yuri,
     to: alex,
@@ -196,7 +198,6 @@ async function playDoubleYes(
   });
   await pauseBetweenBeats();
 
-  // Beat 2: Alex -> Yuri sealed.
   const i2 = await sealedIntent(entangleDeps, {
     from: alex,
     to: yuri,
@@ -205,22 +206,19 @@ async function playDoubleYes(
   });
   await pauseBetweenBeats();
 
-  // Beat 3: mutual detection + two reveals flow naturally from core.
   await detectMutual(entangleDeps, i2);
   await pauseBetweenBeats();
 
-  // Beat 4: cosmetic "yes" responses from both humans simulated on-channel.
-  await deps.channel.simulateReceive(
-    { platform: 'whatsapp', handle: alex.handles[0]?.handle ?? '+1-5551234567' },
+  await deps.messenger.simulateReceive(
+    { platform: 'imessage', handle: alex.handles[0]?.handle ?? '+1-555-0002' },
     'yes'
   );
-  await deps.channel.simulateReceive(
-    { platform: 'imessage', handle: yuri.handles[0]?.handle ?? '+81-9012345678' },
+  await deps.messenger.simulateReceive(
+    { platform: 'imessage', handle: yuri.handles[0]?.handle ?? '+1-555-0001' },
     'yes'
   );
   await pauseBetweenBeats();
 
-  // Beat 5: thread opened.
   internal.eventLog.emit({
     type: 'thread-opened',
     at: new Date(),
@@ -244,7 +242,7 @@ async function playQuietBroadcast(
   }
 
   const probe = createProbe(yuri.id, candidates);
-  internal.broadcastStore.save(probe);
+  await internal.broadcastStore.put(probe);
   internal.eventLog.emit({
     type: 'broadcast-started',
     at: new Date(),
@@ -252,9 +250,6 @@ async function playQuietBroadcast(
     candidateCount: candidates.length,
   });
 
-  // Beat 1: cinematic-paced fan-out. We replicate the quietBroadcast loop so we
-  // can pause between each suppression/probe for visual drama, keeping the
-  // core primitive pure.
   const perBeatPause = Math.max(50, Math.round(pauseMs / 5));
   for (const candidate of candidates) {
     await sleep(perBeatPause);
@@ -281,8 +276,8 @@ async function playQuietBroadcast(
       });
       continue;
     }
-    const message = await deps.humanize(buildProbePromptLocal(yuri, candidate, probe));
-    await deps.channel.send(handle, { text: message, kind: 'prompt' });
+    const message = await deps.humanize.renderProbe(probe, candidate);
+    await deps.messenger.send(handle, { text: message, kind: 'prompt' });
     internal.eventLog.emit({
       type: 'probed',
       at: new Date(),
@@ -294,24 +289,23 @@ async function playQuietBroadcast(
 
   await pauseBetweenBeats();
 
-  // Beat 2: two yes, one no, spaced generously for drama.
   const bigPause = pauseMs * 2;
   await sleep(bigPause);
-  recordBroadcastResponse(
+  await recordBroadcastResponse(
     { store: internal.broadcastStore, events: internal.eventLog },
     probe.id,
     'mika',
     'yes'
   );
   await sleep(bigPause);
-  recordBroadcastResponse(
+  await recordBroadcastResponse(
     { store: internal.broadcastStore, events: internal.eventLog },
     probe.id,
     'taro',
     'yes'
   );
   await sleep(bigPause);
-  recordBroadcastResponse(
+  await recordBroadcastResponse(
     { store: internal.broadcastStore, events: internal.eventLog },
     probe.id,
     'ken',
@@ -320,9 +314,13 @@ async function playQuietBroadcast(
 
   await pauseBetweenBeats();
 
-  // Beat 3: bubble-up + thread-opened.
-  finalizeBroadcast(
-    { store: internal.broadcastStore, events: internal.eventLog },
+  await finalizeBroadcast(
+    {
+      graph: deps.graph,
+      store: internal.broadcastStore,
+      events: internal.eventLog,
+      humanize: deps.humanize,
+    },
     probe.id,
     'Jazz tonight'
   );
@@ -342,13 +340,4 @@ function createProbe(ownerId: string, candidates: Person[]): BroadcastProbe {
     createdAt: new Date(),
     responses,
   };
-}
-
-function buildProbePromptLocal(owner: Person, candidate: Person, probe: BroadcastProbe): string {
-  const where = probe.constraints.where ? ` in ${probe.constraints.where}` : '';
-  return [
-    `Agent decision: quiet broadcast from ${owner.displayName} to ${candidate.displayName}.`,
-    `Context: ${owner.displayName}'s wondering if you're around for ${probe.payload}${where} ${probe.constraints.when}. No pressure.`,
-    `Write a gentle, low-pressure probe addressed to ${candidate.displayName}.`,
-  ].join('\n');
 }

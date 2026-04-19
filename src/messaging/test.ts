@@ -1,13 +1,7 @@
+import type { MessageKind, Messenger } from '../core/types.js';
 import type { PlatformHandle, PlatformId } from '../engram/types.js';
-import type { Channel, ChannelMessage, ChannelReceiver, MessageKind } from './types.js';
 
-const ALL_PLATFORMS: readonly PlatformId[] = Object.freeze([
-  'imessage',
-  'whatsapp',
-  'telegram',
-  'slack',
-  'discord',
-]);
+const ALL_PLATFORMS: readonly PlatformId[] = Object.freeze(['imessage']);
 
 export interface SentRecord {
   platform: PlatformId;
@@ -17,9 +11,9 @@ export interface SentRecord {
   at: Date;
 }
 
-export type ChannelEvent =
+export type MessengerEvent =
   | {
-      type: 'channel:sent';
+      type: 'messenger:sent';
       platform: PlatformId;
       handle: string;
       text: string;
@@ -27,47 +21,52 @@ export type ChannelEvent =
       at: Date;
     }
   | {
-      type: 'channel:received';
+      type: 'messenger:received';
       platform: PlatformId;
       handle: string;
       text: string;
       at: Date;
     }
   | {
-      type: 'channel:platform-status';
+      type: 'messenger:platform-status';
       platform: PlatformId;
       online: boolean;
       at: Date;
     };
 
-export type ChannelEventListener = (event: ChannelEvent) => void;
+export type MessengerEventListener = (event: MessengerEvent) => void;
 
-export interface MockChannel extends Channel {
+type ReceiveHandler = (from: PlatformHandle, text: string) => Promise<void>;
+
+export interface TestMessenger extends Messenger {
   readonly sent: ReadonlyArray<SentRecord>;
   readonly platforms: readonly PlatformId[];
   simulateReceive(from: PlatformHandle, text: string): Promise<void>;
-  subscribe(listener: ChannelEventListener): () => void;
+  subscribe(listener: MessengerEventListener): () => void;
   setOnline(platform: PlatformId, online: boolean): void;
   clear(): void;
 }
 
-export interface MockChannelOptions {
+export interface TestMessengerOptions {
   platforms?: readonly PlatformId[];
 }
 
-export function createMockChannel(options: MockChannelOptions = {}): MockChannel {
+export function createTestMessenger(options: TestMessengerOptions = {}): TestMessenger {
   const platforms: readonly PlatformId[] = Object.freeze([...(options.platforms ?? ALL_PLATFORMS)]);
   const sent: SentRecord[] = [];
-  const receivers: ChannelReceiver[] = [];
-  const listeners = new Set<ChannelEventListener>();
+  const receivers: ReceiveHandler[] = [];
+  const listeners = new Set<MessengerEventListener>();
 
-  const emit = (event: ChannelEvent): void => {
+  const emit = (event: MessengerEvent): void => {
     for (const listener of listeners) {
       listener(event);
     }
   };
 
-  const send = async (to: PlatformHandle, message: ChannelMessage): Promise<void> => {
+  const send = async (
+    to: PlatformHandle,
+    message: { text: string; kind?: MessageKind }
+  ): Promise<void> => {
     const record: SentRecord = {
       platform: to.platform,
       handle: to.handle,
@@ -77,7 +76,7 @@ export function createMockChannel(options: MockChannelOptions = {}): MockChannel
     };
     sent.push(record);
     emit({
-      type: 'channel:sent',
+      type: 'messenger:sent',
       platform: record.platform,
       handle: record.handle,
       text: record.text,
@@ -86,13 +85,13 @@ export function createMockChannel(options: MockChannelOptions = {}): MockChannel
     });
   };
 
-  const onReceive = (handler: ChannelReceiver): void => {
+  const onReceive = (handler: ReceiveHandler): void => {
     receivers.push(handler);
   };
 
   const simulateReceive = async (from: PlatformHandle, text: string): Promise<void> => {
     emit({
-      type: 'channel:received',
+      type: 'messenger:received',
       platform: from.platform,
       handle: from.handle,
       text,
@@ -103,7 +102,7 @@ export function createMockChannel(options: MockChannelOptions = {}): MockChannel
     }
   };
 
-  const subscribe = (listener: ChannelEventListener): (() => void) => {
+  const subscribe = (listener: MessengerEventListener): (() => void) => {
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
@@ -112,7 +111,7 @@ export function createMockChannel(options: MockChannelOptions = {}): MockChannel
 
   const setOnline = (platform: PlatformId, online: boolean): void => {
     emit({
-      type: 'channel:platform-status',
+      type: 'messenger:platform-status',
       platform,
       online,
       at: new Date(),

@@ -20,8 +20,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "better-sqlite3": "^11.7.0",
+    "dotenv": "^16.4.7",
     "nanoid": "^5.0.9",
-    "node-telegram-bot-api": "^0.67.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "ws": "^8.18.0",
@@ -31,7 +31,6 @@
     "@biomejs/biome": "^1.9.4",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.2",
-    "@types/node-telegram-bot-api": "^0.64.14",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@types/ws": "^8.5.13",

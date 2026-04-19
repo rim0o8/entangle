@@ -3,172 +3,183 @@
     {
       "id": "yuri",
       "displayName": "Yuri",
-      "handles": [
-        { "platform": "imessage", "handle": "+81-9012345678" },
-        { "platform": "telegram", "handle": "@yuri" },
-        { "platform": "whatsapp", "handle": "+81-9012345678" }
-      ],
-      "preferredPlatforms": ["imessage", "telegram", "whatsapp", "slack", "discord"],
-      "preferences": { "city": "tokyo", "loves": "jazz" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-0001" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "city": "tokyo", "loves": "jazz" },
+      "availability": "free",
+      "real": true
     },
     {
       "id": "alex",
       "displayName": "Alex",
-      "handles": [
-        { "platform": "whatsapp", "handle": "+1-5551234567" },
-        { "platform": "slack", "handle": "@alex" }
-      ],
-      "preferredPlatforms": ["whatsapp", "slack"],
-      "preferences": { "city": "sf", "role": "founder" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-0002" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "city": "sf", "role": "founder" },
+      "availability": "free",
+      "real": true
     },
     {
       "id": "mika",
       "displayName": "Mika",
-      "handles": [
-        { "platform": "imessage", "handle": "+81-9011110001" },
-        { "platform": "telegram", "handle": "@mika" }
-      ],
-      "preferredPlatforms": ["imessage", "telegram"],
-      "preferences": { "availability": "free", "loves": "jazz", "city": "tokyo" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-0003" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "loves": "jazz", "city": "tokyo" },
+      "availability": "free",
+      "real": true
     },
     {
       "id": "taro",
       "displayName": "Taro",
-      "handles": [
-        { "platform": "whatsapp", "handle": "+81-9011110002" },
-        { "platform": "telegram", "handle": "@taro" }
-      ],
-      "preferredPlatforms": ["whatsapp", "telegram"],
-      "preferences": { "availability": "free", "loves": "jazz", "city": "tokyo" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-0004" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "loves": "jazz", "city": "tokyo" },
+      "availability": "free",
+      "real": true
     },
     {
       "id": "ken",
       "displayName": "Ken",
-      "handles": [
-        { "platform": "telegram", "handle": "@ken" },
-        { "platform": "discord", "handle": "ken#0001" }
-      ],
-      "preferredPlatforms": ["telegram", "discord"],
-      "preferences": { "availability": "free", "loves": "jazz", "city": "tokyo" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-0005" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "loves": "jazz", "city": "tokyo" },
+      "availability": "free",
+      "real": true
     },
     {
       "id": "busy1",
       "displayName": "Hana",
-      "handles": [{ "platform": "imessage", "handle": "+81-9020000001" }],
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1001" }],
       "preferredPlatforms": ["imessage"],
-      "preferences": { "availability": "busy" }
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy2",
       "displayName": "Ren",
-      "handles": [{ "platform": "whatsapp", "handle": "+81-9020000002" }],
-      "preferredPlatforms": ["whatsapp"],
-      "preferences": { "availability": "busy" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1002" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy3",
       "displayName": "Sora",
-      "handles": [{ "platform": "telegram", "handle": "@sora" }],
-      "preferredPlatforms": ["telegram"],
-      "preferences": { "availability": "busy" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1003" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy4",
       "displayName": "Yui",
-      "handles": [{ "platform": "slack", "handle": "@yui" }],
-      "preferredPlatforms": ["slack"],
-      "preferences": { "availability": "busy" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1004" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy5",
       "displayName": "Kai",
-      "handles": [{ "platform": "discord", "handle": "kai#0002" }],
-      "preferredPlatforms": ["discord"],
-      "preferences": { "availability": "busy" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1005" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy6",
       "displayName": "Aoi",
-      "handles": [{ "platform": "imessage", "handle": "+81-9020000006" }],
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1006" }],
       "preferredPlatforms": ["imessage"],
-      "preferences": { "availability": "busy" }
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy7",
       "displayName": "Riku",
-      "handles": [{ "platform": "whatsapp", "handle": "+81-9020000007" }],
-      "preferredPlatforms": ["whatsapp"],
-      "preferences": { "availability": "busy" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1007" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy8",
       "displayName": "Nao",
-      "handles": [{ "platform": "telegram", "handle": "@nao" }],
-      "preferredPlatforms": ["telegram"],
-      "preferences": { "availability": "busy" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1008" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy9",
       "displayName": "Emi",
-      "handles": [{ "platform": "slack", "handle": "@emi" }],
-      "preferredPlatforms": ["slack"],
-      "preferences": { "availability": "busy" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1009" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "busy10",
       "displayName": "Jun",
-      "handles": [{ "platform": "discord", "handle": "jun#0010" }],
-      "preferredPlatforms": ["discord"],
-      "preferences": { "availability": "busy" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-1010" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "busy"
     },
     {
       "id": "travel1",
       "displayName": "Lena",
-      "handles": [{ "platform": "imessage", "handle": "+1-4150000001" }],
+      "handles": [{ "platform": "imessage", "handle": "+1-555-2001" }],
       "preferredPlatforms": ["imessage"],
-      "preferences": { "availability": "traveling" }
+      "preferences": {},
+      "availability": "traveling"
     },
     {
       "id": "travel2",
       "displayName": "Omar",
-      "handles": [{ "platform": "whatsapp", "handle": "+1-4150000002" }],
-      "preferredPlatforms": ["whatsapp"],
-      "preferences": { "availability": "traveling" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-2002" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "traveling"
     },
     {
       "id": "travel3",
       "displayName": "Priya",
-      "handles": [{ "platform": "telegram", "handle": "@priya" }],
-      "preferredPlatforms": ["telegram"],
-      "preferences": { "availability": "traveling" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-2003" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "traveling"
     },
     {
       "id": "travel4",
       "displayName": "Sven",
-      "handles": [{ "platform": "slack", "handle": "@sven" }],
-      "preferredPlatforms": ["slack"],
-      "preferences": { "availability": "traveling" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-2004" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "traveling"
     },
     {
       "id": "travel5",
       "displayName": "Tara",
-      "handles": [{ "platform": "discord", "handle": "tara#0005" }],
-      "preferredPlatforms": ["discord"],
-      "preferences": { "availability": "traveling" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-2005" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "traveling"
     },
     {
       "id": "decline1",
       "displayName": "Mei",
-      "handles": [{ "platform": "imessage", "handle": "+81-9030000001" }],
+      "handles": [{ "platform": "imessage", "handle": "+1-555-3001" }],
       "preferredPlatforms": ["imessage"],
-      "preferences": { "availability": "declined-recently" }
+      "preferences": {},
+      "availability": "declined-recently"
     },
     {
       "id": "decline2",
       "displayName": "Raj",
-      "handles": [{ "platform": "whatsapp", "handle": "+91-9800000002" }],
-      "preferredPlatforms": ["whatsapp"],
-      "preferences": { "availability": "declined-recently" }
+      "handles": [{ "platform": "imessage", "handle": "+1-555-3002" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": {},
+      "availability": "declined-recently"
     }
   ],
   "relationships": [

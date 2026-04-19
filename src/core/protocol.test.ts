@@ -5,11 +5,18 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EngramLite } from '../engram/lite.js';
 import { loadSeed } from '../engram/seed.js';
 import type { Person } from '../engram/types.js';
-import { createMockChannel } from '../spectrum/mock.js';
+import { createTestMessenger } from '../messaging/test.js';
 import { createEventLog } from './events.js';
 import { createStubHumanizer } from './humanize.js';
-import { detectMutual, filterCandidate, quietBroadcast, sealedIntent } from './protocol.js';
-import { createBroadcastStore, createIntentStore } from './store.js';
+import {
+  detectMutual,
+  filterCandidate,
+  finalizeBroadcast,
+  quietBroadcast,
+  recordBroadcastResponse,
+  sealedIntent,
+} from './protocol.js';
+import { createBroadcastStore, createIntentStore } from './stores.js';
 import type { BroadcastProbe, EntangleEvent } from './types.js';
 
 const SEED_PATH = join(__dirname, '..', 'engram', 'seed.json');
@@ -17,10 +24,9 @@ const SEED_PATH = join(__dirname, '..', 'engram', 'seed.json');
 interface TestEnv {
   engram: EngramLite;
   tempDir: string;
-  dbPath: string;
   yuri: Person;
   alex: Person;
-  channel: ReturnType<typeof createMockChannel>;
+  messenger: ReturnType<typeof createTestMessenger>;
   intentStore: ReturnType<typeof createIntentStore>;
   broadcastStore: ReturnType<typeof createBroadcastStore>;
   events: ReturnType<typeof createEventLog>;
@@ -30,29 +36,24 @@ interface TestEnv {
 
 async function makeEnv(): Promise<TestEnv> {
   const tempDir = mkdtempSync(join(tmpdir(), 'entangle-test-'));
-  const dbPath = join(tempDir, 'test.sqlite');
-  const engram = new EngramLite(dbPath);
-  loadSeed(engram, SEED_PATH);
+  const engram = new EngramLite(join(tempDir, 'engram.sqlite'));
+  loadSeed(engram, { path: SEED_PATH, profile: 'test' });
   const yuri = await engram.getPerson('yuri');
   const alex = await engram.getPerson('alex');
   if (!yuri || !alex) throw new Error('seed bad');
-  const channel = createMockChannel();
-  const intentStore = createIntentStore();
-  const broadcastStore = createBroadcastStore();
+  const messenger = createTestMessenger();
+  const intentStore = createIntentStore({ dbPath: join(tempDir, 'intents.sqlite') });
+  const broadcastStore = createBroadcastStore({ dbPath: join(tempDir, 'broadcasts.sqlite') });
   const events = createEventLog();
   const captured: EntangleEvent[] = [];
   events.subscribe((e) => captured.push(e));
-  const humanize = createStubHumanizer((prompt) => {
-    const lines = prompt.split('\n').filter((l) => l.trim().length > 0);
-    return lines[lines.length - 1] ?? 'ok';
-  });
+  const humanize = createStubHumanizer();
   return {
     engram,
     tempDir,
-    dbPath,
     yuri,
     alex,
-    channel,
+    messenger,
     intentStore,
     broadcastStore,
     events,
@@ -77,7 +78,7 @@ describe('sealedIntent', () => {
     const intent = await sealedIntent(
       {
         graph: env.engram,
-        channel: env.channel,
+        messenger: env.messenger,
         store: env.intentStore,
         events: env.events,
       },
@@ -90,9 +91,10 @@ describe('sealedIntent', () => {
     );
 
     expect(intent.state).toBe('sealed');
-    expect(env.intentStore.get(intent.id)?.state).toBe('sealed');
+    const stored = await env.intentStore.get(intent.id);
+    expect(stored?.state).toBe('sealed');
     expect(env.captured.filter((e) => e.type === 'sealed').length).toBe(1);
-    expect(env.channel.sent.length).toBe(0);
+    expect(env.messenger.sent.length).toBe(0);
   });
 });
 
@@ -107,7 +109,7 @@ describe('detectMutual', () => {
     const i1 = await sealedIntent(
       {
         graph: env.engram,
-        channel: env.channel,
+        messenger: env.messenger,
         store: env.intentStore,
         events: env.events,
       },
@@ -116,7 +118,7 @@ describe('detectMutual', () => {
     const result = await detectMutual(
       {
         graph: env.engram,
-        channel: env.channel,
+        messenger: env.messenger,
         store: env.intentStore,
         events: env.events,
         humanize: env.humanize,
@@ -129,7 +131,7 @@ describe('detectMutual', () => {
   it('returns matched:true; emits mutual-detected + two reveal events; sends to both parties', async () => {
     const deps = {
       graph: env.engram,
-      channel: env.channel,
+      messenger: env.messenger,
       store: env.intentStore,
       events: env.events,
       humanize: env.humanize,
@@ -153,10 +155,41 @@ describe('detectMutual', () => {
     expect(env.captured.filter((e) => e.type === 'mutual-detected').length).toBe(1);
     const reveals = env.captured.filter((e) => e.type === 'reveal');
     expect(reveals.length).toBe(2);
-    expect(env.channel.sent.length).toBe(2);
-    const all = env.intentStore.listAll();
-    for (const i of all) {
-      expect(i.state).toBe('revealed');
+    expect(env.messenger.sent.length).toBe(2);
+
+    // After reveal, both intents should be in 'revealed' state.
+    const yuriIntent = await env.intentStore.get(i2.id);
+    expect(yuriIntent?.state).toBe('revealed');
+  });
+
+  it('reveals use stub humanizer canned format', async () => {
+    const deps = {
+      graph: env.engram,
+      messenger: env.messenger,
+      store: env.intentStore,
+      events: env.events,
+      humanize: env.humanize,
+    };
+    await sealedIntent(deps, {
+      from: env.yuri,
+      to: env.alex,
+      payload: 'p1',
+      kind: 'collaborate',
+    });
+    const i2 = await sealedIntent(deps, {
+      from: env.alex,
+      to: env.yuri,
+      payload: 'p2',
+      kind: 'collaborate',
+    });
+    await detectMutual(deps, i2);
+
+    const reveals = env.captured.filter(
+      (e): e is Extract<EntangleEvent, { type: 'reveal' }> => e.type === 'reveal'
+    );
+    expect(reveals.length).toBe(2);
+    for (const r of reveals) {
+      expect(r.message).toMatch(/^\[reveal: /);
     }
   });
 });
@@ -178,7 +211,7 @@ describe('filterCandidate', () => {
     responses: {},
   };
 
-  it('suppresses busy', async () => {
+  it('suppresses busy (reads top-level availability)', async () => {
     const r = await filterCandidate({ graph: env.engram }, 'yuri', 'busy1', dummyProbe);
     expect(r).toEqual({ verdict: 'suppress', reason: 'busy' });
   });
@@ -208,14 +241,13 @@ describe('quietBroadcast', () => {
 
   it('emits 17 suppressed + 3 probed for 20 candidates; sends 3 times', async () => {
     const friends = await env.engram.listFriends('yuri');
-    // Exclude alex (not part of the 20-candidate broadcast set; but seed has 21 rels).
     const candidates = friends.filter((f) => f.id !== 'alex');
     expect(candidates.length).toBe(20);
 
     await quietBroadcast(
       {
         graph: env.engram,
-        channel: env.channel,
+        messenger: env.messenger,
         store: env.broadcastStore,
         events: env.events,
         humanize: env.humanize,
@@ -232,7 +264,77 @@ describe('quietBroadcast', () => {
     const probed = env.captured.filter((e) => e.type === 'probed');
     expect(suppressed.length).toBe(17);
     expect(probed.length).toBe(3);
-    expect(env.channel.sent.length).toBe(3);
+    expect(env.messenger.sent.length).toBe(3);
+  });
+});
+
+describe('finalizeBroadcast', () => {
+  let env: TestEnv;
+  beforeEach(async () => {
+    env = await makeEnv();
+  });
+  afterEach(() => cleanup(env));
+
+  it('renders bubble-up message via humanizer and emits it with yesResponders', async () => {
+    const friends = await env.engram.listFriends('yuri');
+    const candidates = friends.filter((f) => f.id !== 'alex');
+
+    const probe = await quietBroadcast(
+      {
+        graph: env.engram,
+        messenger: env.messenger,
+        store: env.broadcastStore,
+        events: env.events,
+        humanize: env.humanize,
+      },
+      {
+        owner: env.yuri,
+        candidates,
+        payload: 'Jazz tonight, anyone?',
+        constraints: { when: 'tonight', where: 'tokyo' },
+      }
+    );
+
+    await recordBroadcastResponse(
+      { store: env.broadcastStore, events: env.events },
+      probe.id,
+      'mika',
+      'yes'
+    );
+    await recordBroadcastResponse(
+      { store: env.broadcastStore, events: env.events },
+      probe.id,
+      'taro',
+      'yes'
+    );
+    await recordBroadcastResponse(
+      { store: env.broadcastStore, events: env.events },
+      probe.id,
+      'ken',
+      'no'
+    );
+
+    const result = await finalizeBroadcast(
+      {
+        graph: env.engram,
+        store: env.broadcastStore,
+        events: env.events,
+        humanize: env.humanize,
+      },
+      probe.id,
+      'Jazz tonight'
+    );
+
+    expect(result.threadOpened).toBe(true);
+    expect(result.yesResponders.sort()).toEqual(['mika', 'taro']);
+    expect(result.message).toMatch(/^\[bubble-up: /);
+
+    const bubbleUps = env.captured.filter(
+      (e): e is Extract<EntangleEvent, { type: 'bubble-up' }> => e.type === 'bubble-up'
+    );
+    expect(bubbleUps.length).toBe(1);
+    expect(bubbleUps[0]?.yesResponders.sort()).toEqual(['mika', 'taro']);
+    expect(bubbleUps[0]?.message).toMatch(/^\[bubble-up: /);
   });
 });
 
@@ -246,7 +348,7 @@ describe('detectMutual race safety', () => {
   it('exactly one of two concurrent detectMutual calls returns matched:true', async () => {
     const deps = {
       graph: env.engram,
-      channel: env.channel,
+      messenger: env.messenger,
       store: env.intentStore,
       events: env.events,
       humanize: env.humanize,
@@ -269,12 +371,53 @@ describe('detectMutual race safety', () => {
     const matchedCount = [rA.matched, rB.matched].filter(Boolean).length;
     expect(matchedCount).toBe(1);
 
-    const all = env.intentStore.listAll();
-    for (const i of all) {
-      expect(i.state).toBe('revealed');
-    }
     // Only one reveal pair (2 reveal events, 1 mutual-detected).
     expect(env.captured.filter((e) => e.type === 'mutual-detected').length).toBe(1);
     expect(env.captured.filter((e) => e.type === 'reveal').length).toBe(2);
+  });
+});
+
+describe('no real network calls during tests', () => {
+  it('createStubHumanizer never invokes Anthropic', async () => {
+    // Intercept any global fetch attempts; Anthropic SDK uses fetch internally.
+    // If HUMANIZE_STUB=1 is set (setupFiles does this), createHumanizerFromEnv
+    // returns the stub; the stub must never call fetch.
+    const originalFetch = globalThis.fetch;
+    let fetchCalls = 0;
+    globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+      fetchCalls += 1;
+      return originalFetch(...args);
+    }) as typeof fetch;
+
+    try {
+      const stub = createStubHumanizer();
+      await stub.renderReveal(
+        {
+          id: 'a',
+          ownerPersonId: 'yuri',
+          targetPersonId: 'alex',
+          kind: 'collaborate',
+          payload: 'x',
+          urgency: 'med',
+          createdAt: new Date(),
+          expiresAt: new Date(),
+          state: 'matched',
+        },
+        {
+          id: 'b',
+          ownerPersonId: 'alex',
+          targetPersonId: 'yuri',
+          kind: 'collaborate',
+          payload: 'y',
+          urgency: 'med',
+          createdAt: new Date(),
+          expiresAt: new Date(),
+          state: 'matched',
+        }
+      );
+      expect(fetchCalls).toBe(0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

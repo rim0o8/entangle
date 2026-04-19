@@ -3,13 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createEventLog } from '../src/core/events.js';
-import { createAnthropicHumanizer, createStubHumanizer } from '../src/core/humanize.js';
+import { createHumanizerFromEnv } from '../src/core/humanize.js';
 import { detectMutual, sealedIntent } from '../src/core/protocol.js';
-import { createIntentStore } from '../src/core/store.js';
+import { createIntentStore } from '../src/core/stores.js';
 import type { EntangleEvent } from '../src/core/types.js';
 import { EngramLite } from '../src/engram/lite.js';
 import { loadSeed } from '../src/engram/seed.js';
-import { createMockChannel } from '../src/spectrum/mock.js';
+import { createTestMessenger } from '../src/messaging/test.js';
 
 const REPO_ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SEED_PATH = join(REPO_ROOT, 'src', 'engram', 'seed.json');
@@ -49,7 +49,7 @@ function formatEvent(e: EntangleEvent): string {
     case 'response':
       return `[response] ${e.from}: ${e.response}`;
     case 'bubble-up':
-      return `[bubble-up] yes: [${e.yesResponders.join(', ')}]`;
+      return `[bubble-up] yes: [${e.yesResponders.join(', ')}] msg="${e.message}"`;
     case 'thread-opened':
       return `[thread-opened] participants=[${e.participants.join(', ')}] ctx="${e.context}"`;
   }
@@ -57,31 +57,24 @@ function formatEvent(e: EntangleEvent): string {
 
 async function main(): Promise<void> {
   const tempDir = mkdtempSync(join(tmpdir(), 'entangle-double-yes-'));
-  const dbPath = join(tempDir, 'demo.sqlite');
-  const engram = new EngramLite(dbPath);
+  const engramDb = join(tempDir, 'engram.sqlite');
+  const intentDb = join(tempDir, 'intents.sqlite');
+  const engram = new EngramLite(engramDb);
 
   try {
-    loadSeed(engram, SEED_PATH);
+    loadSeed(engram, { path: SEED_PATH, profile: 'test' });
 
-    const yuri = await engram.resolveByHandle({
-      platform: 'imessage',
-      handle: '+81-9012345678',
-    });
-    const alex = await engram.resolveByHandle({
-      platform: 'whatsapp',
-      handle: '+1-5551234567',
-    });
+    const yuri = await engram.getPerson('yuri');
+    const alex = await engram.getPerson('alex');
     if (!yuri || !alex) fail('could not resolve yuri or alex');
 
-    const channel = createMockChannel();
-    const store = createIntentStore();
+    const messenger = createTestMessenger();
+    const store = createIntentStore({ dbPath: intentDb });
     const events = createEventLog();
     events.subscribe((e) => console.log(formatEvent(e)));
-    const humanize = process.env.ANTHROPIC_API_KEY
-      ? createAnthropicHumanizer({ apiKey: process.env.ANTHROPIC_API_KEY })
-      : createStubHumanizer();
+    const humanize = createHumanizerFromEnv();
 
-    const deps = { graph: engram, channel, store, events, humanize };
+    const deps = { graph: engram, messenger, store, events, humanize };
 
     console.log('--- Double Yes ---');
 
@@ -96,8 +89,8 @@ async function main(): Promise<void> {
     if (!check1.ok) fail(check1.message);
 
     const check2 = assert(
-      channel.sent.length === 0,
-      `channel.sent should be empty, got ${channel.sent.length}`
+      messenger.sent.length === 0,
+      `messenger.sent should be empty, got ${messenger.sent.length}`
     );
     if (!check2.ok) fail(check2.message);
 
@@ -112,16 +105,16 @@ async function main(): Promise<void> {
     const check3 = assert(r.matched === true, `detectMutual should match, got ${r.matched}`);
     if (!check3.ok) fail(check3.message);
 
-    const sendsToYuri = channel.sent.filter((s) =>
+    const sendsToYuri = messenger.sent.filter((s) =>
       yuri.handles.some((h) => h.platform === s.platform && h.handle === s.handle)
     );
-    const sendsToAlex = channel.sent.filter((s) =>
+    const sendsToAlex = messenger.sent.filter((s) =>
       alex.handles.some((h) => h.platform === s.platform && h.handle === s.handle)
     );
 
     const check4 = assert(
-      channel.sent.length === 2,
-      `channel.sent should have 2 entries, got ${channel.sent.length}`
+      messenger.sent.length === 2,
+      `messenger.sent should have 2 entries, got ${messenger.sent.length}`
     );
     if (!check4.ok) fail(check4.message);
 
@@ -130,26 +123,6 @@ async function main(): Promise<void> {
       `expected 1 send each to yuri and alex, got yuri=${sendsToYuri.length} alex=${sendsToAlex.length}`
     );
     if (!check5.ok) fail(check5.message);
-
-    const yuriSend = sendsToYuri[0];
-    const alexSend = sendsToAlex[0];
-    if (!yuriSend || !alexSend) fail('missing send records');
-    // Spectrum adapter now records the platform of the actual handle used for
-    // delivery. Verify each send is tagged with one of that person's handle
-    // platforms (not hard-coded) so the demo UI can pick the right phone frame.
-    const yuriPlatforms = new Set(yuri.handles.map((h) => h.platform));
-    const alexPlatforms = new Set(alex.handles.map((h) => h.platform));
-    const check5a = assert(
-      yuriPlatforms.has(yuriSend.platform),
-      `yuri send platform must be one of ${[...yuriPlatforms].join('|')}, got ${yuriSend.platform}`
-    );
-    if (!check5a.ok) fail(check5a.message);
-    const check5b = assert(
-      alexPlatforms.has(alexSend.platform),
-      `alex send platform must be one of ${[...alexPlatforms].join('|')}, got ${alexSend.platform}`
-    );
-    if (!check5b.ok) fail(check5b.message);
-    console.log(`[platforms] yuri<-${yuriSend.platform} alex<-${alexSend.platform}`);
 
     const reveals = events.snapshot().filter((e) => e.type === 'reveal');
     if (reveals.length !== 2) fail(`expected 2 reveal events, got ${reveals.length}`);
@@ -160,7 +133,6 @@ async function main(): Promise<void> {
     const check6 = assert(delta <= 500, `reveal delta should be <=500ms, got ${delta}ms`);
     if (!check6.ok) fail(check6.message);
 
-    // Emit thread-opened so the demo timeline matches spec §5.1.
     events.emit({
       type: 'thread-opened',
       at: new Date(),
