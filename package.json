@@ -11,6 +11,8 @@
     "build:web": "vite build --config web/vite.config.ts",
     "example:doubleyes": "tsx examples/double-yes.ts",
     "example:quietbroadcast": "tsx examples/quiet-broadcast.ts",
+    "demo:doubleyes": "tsx src/demo/cli.ts --scenario=double-yes",
+    "demo:quietbroadcast": "tsx src/demo/cli.ts --scenario=quiet-broadcast",
     "lint": "biome check .",
     "format": "biome format --write .",
     "type-check": "tsc --noEmit"

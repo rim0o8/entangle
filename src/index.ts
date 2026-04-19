@@ -95,3 +95,17 @@ export {
   type Humanizer,
   type AnthropicHumanizerOptions,
 } from './core/humanize.js';
+
+// Demo — orchestrator + WS server
+export {
+  createDemoServer,
+  createOrchestrator,
+  type DemoServer,
+  type DemoServerOptions,
+  type Orchestrator,
+  type OrchestratorDeps,
+  type OrchestratorEvent,
+  type OrchestratorEventHandler,
+  type OrchestratorState,
+  type ScenarioId,
+} from './demo/index.js';
