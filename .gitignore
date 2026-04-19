@@ -1,0 +1,6 @@
+node_modules
+dist
+.env
+.entangle/
+coverage
+.DS_Store
