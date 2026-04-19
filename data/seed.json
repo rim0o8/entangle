@@ -1,0 +1,467 @@
+{
+  "persons": [
+    {
+      "id": "yuri",
+      "displayName": "Yuri",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "${ENV:YURI_HANDLE}"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "free"
+    },
+    {
+      "id": "alex",
+      "displayName": "Alex",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "${ENV:ALEX_HANDLE}"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "free"
+    },
+    {
+      "id": "mika",
+      "displayName": "Mika",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "${ENV:MIKA_HANDLE}"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "free"
+    },
+    {
+      "id": "taro",
+      "displayName": "Taro",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "${ENV:TARO_HANDLE}"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "free"
+    },
+    {
+      "id": "ken",
+      "displayName": "Ken",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "${ENV:KEN_HANDLE}"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "free"
+    },
+    {
+      "id": "p06",
+      "displayName": "Sora",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0200"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "busy"
+    },
+    {
+      "id": "p07",
+      "displayName": "Ren",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0201"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "busy"
+    },
+    {
+      "id": "p08",
+      "displayName": "Yuna",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0202"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "busy"
+    },
+    {
+      "id": "p09",
+      "displayName": "Haruto",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0203"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "busy"
+    },
+    {
+      "id": "p10",
+      "displayName": "Aiko",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0204"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "busy"
+    },
+    {
+      "id": "p11",
+      "displayName": "Daiki",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0205"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "busy"
+    },
+    {
+      "id": "p12",
+      "displayName": "Hina",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0206"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "busy"
+    },
+    {
+      "id": "p13",
+      "displayName": "Riku",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0207"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "traveling"
+    },
+    {
+      "id": "p14",
+      "displayName": "Saki",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0208"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "traveling"
+    },
+    {
+      "id": "p15",
+      "displayName": "Takumi",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0209"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "traveling"
+    },
+    {
+      "id": "p16",
+      "displayName": "Mei",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0210"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "traveling"
+    },
+    {
+      "id": "p17",
+      "displayName": "Yuto",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0211"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "declined-recently"
+    },
+    {
+      "id": "p18",
+      "displayName": "Nao",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0212"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "declined-recently"
+    },
+    {
+      "id": "p19",
+      "displayName": "Kaito",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0213"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "declined-recently"
+    },
+    {
+      "id": "p20",
+      "displayName": "Emi",
+      "handles": [
+        {
+          "platform": "imessage",
+          "handle": "+1-555-0214"
+        }
+      ],
+      "preferredPlatforms": [
+        "imessage"
+      ],
+      "preferences": {},
+      "availability": "declined-recently"
+    }
+  ],
+  "relationships": [
+    {
+      "fromId": "yuri",
+      "toId": "alex",
+      "type": "collaborator",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "alex",
+      "toId": "yuri",
+      "type": "collaborator",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "mika",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "mika",
+      "toId": "yuri",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "taro",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "taro",
+      "toId": "yuri",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "ken",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "ken",
+      "toId": "yuri",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p06",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p07",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p08",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p09",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p10",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p11",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p12",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p13",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p14",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p15",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p16",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p17",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p18",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p19",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "p20",
+      "type": "colleague",
+      "lastContactAt": null,
+      "tags": []
+    }
+  ]
+}

@@ -1,24 +1,33 @@
 #!/usr/bin/env bash
 # Entangle pre-commit hook. SPEC §6 / §7 secrets rule.
-# Blocks secrets, not documentation that describes the patterns.
+# Blocks secrets, allows documentation and the +1-555- NANP test reserve that
+# SPEC §4 explicitly designates for synthetic fixtures.
 set -euo pipefail
 
-# Hard-block .env if staged
+# Hard-block .env if staged (but allow .env.example).
 if git diff --cached --name-only | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$' >/dev/null; then
   echo 'refused: .env file staged for commit'
   exit 1
 fi
 
-# Scan staged diff lines (added only), excluding files that are allowed to
-# discuss the patterns literally.
-violations=$(git diff --cached -U0 \
+# Scan staged additions only; skip docs and the hook itself, where the
+# patterns appear as documentation rather than as real values.
+added=$(git diff --cached -U0 \
   ':(exclude)*.md' \
   ':(exclude).githooks/*' \
   ':(exclude).env.example' \
   2>/dev/null \
   | grep -E '^\+' \
   | grep -v '^+++' \
-  | grep -E '(\+1-[0-9]|\+81-[0-9]|sk-ant-[A-Za-z0-9_-]{10}|PHOTON_API_KEY=[A-Za-z0-9_-]{8}|PHOTON_PROJECT_ID=[A-Fa-f0-9-]{8})' || true)
+  || true)
+
+# Drop lines that only contain the NANP test reserve prefix +1-555-xxxx.
+# They're fakes; reaching a real phone from that range is impossible.
+candidates=$(printf '%s\n' "${added}" | grep -v -E '\+1-555-' || true)
+
+violations=$(printf '%s\n' "${candidates}" \
+  | grep -E '(\+1-[0-9]|\+81-[0-9]|sk-ant-[A-Za-z0-9_-]{10}|PHOTON_API_KEY=[A-Za-z0-9_-]{8}|PHOTON_PROJECT_ID=[A-Fa-f0-9-]{8})' \
+  || true)
 
 if [ -n "${violations}" ]; then
   echo 'refused: staged diff contains forbidden secret pattern'
