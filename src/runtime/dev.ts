@@ -41,9 +41,10 @@ async function main() {
   requireEnv('PHOTON_PROJECT_ID');
   requireEnv('PHOTON_API_KEY');
   requireEnv('ANTHROPIC_API_KEY');
-  for (const h of ['YURI_HANDLE', 'ALEX_HANDLE', 'MIKA_HANDLE', 'TARO_HANDLE', 'KEN_HANDLE']) {
-    requireEnv(h);
-  }
+  const needed = scenario === 'double-yes'
+    ? ['YURI_HANDLE', 'ALEX_HANDLE']
+    : ['YURI_HANDLE', 'ALEX_HANDLE', 'MIKA_HANDLE', 'TARO_HANDLE', 'KEN_HANDLE'];
+  for (const h of needed) requireEnv(h);
 
   const dbPath = process.env.ENTANGLE_DB_PATH ?? '.entangle/db.sqlite';
   mkdirSync(dirname(dbPath), { recursive: true });
@@ -52,7 +53,18 @@ async function main() {
   const graph = new EngramLite(db);
   const intents = new IntentStoreSqlite(db);
   const probes = new BroadcastStoreSqlite(db);
-  const seed = resolveSeed({ path: 'data/seed.json', profile: 'demo' });
+  // For double-yes, MIKA/TARO/KEN are never contacted (they only show up in
+  // quiet-broadcast). Fall back to inert placeholders so the seed loader does
+  // not fail fast on them.
+  const seedEnv: NodeJS.ProcessEnv = { ...process.env };
+  if (scenario === 'double-yes') {
+    for (const k of ['MIKA_HANDLE', 'TARO_HANDLE', 'KEN_HANDLE']) {
+      if (!seedEnv[k] || seedEnv[k]?.trim() === '') {
+        seedEnv[k] = '+1-555-UNUSED-' + k;
+      }
+    }
+  }
+  const seed = resolveSeed({ path: 'data/seed.json', profile: 'demo', env: seedEnv });
   applySeed(graph, seed);
 
   const yuri = await graph.getPerson('yuri');
