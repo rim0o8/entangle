@@ -22,7 +22,8 @@ export class SpectrumMessenger implements Messenger {
       throw new Error(`SpectrumMessenger: unsupported platform ${to.platform}`);
     }
     const platform = imessage(this.spectrum);
-    const space = await platform.space({ users: [{ id: to.handle }] });
+    const user = await platform.user(to.handle);
+    const space = await platform.space([user]);
     await this.spectrum.send(space, textContent(message.text));
   }
 
