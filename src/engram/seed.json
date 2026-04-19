@@ -1,0 +1,329 @@
+{
+  "persons": [
+    {
+      "id": "yuri",
+      "displayName": "Yuri",
+      "handles": [
+        { "platform": "imessage", "handle": "+81-9012345678" },
+        { "platform": "telegram", "handle": "@yuri" }
+      ],
+      "preferredPlatforms": ["imessage", "telegram", "whatsapp", "slack", "discord"],
+      "preferences": { "city": "tokyo", "loves": "jazz" }
+    },
+    {
+      "id": "alex",
+      "displayName": "Alex",
+      "handles": [
+        { "platform": "whatsapp", "handle": "+1-5551234567" },
+        { "platform": "slack", "handle": "@alex" }
+      ],
+      "preferredPlatforms": ["whatsapp", "slack"],
+      "preferences": { "city": "sf", "role": "founder" }
+    },
+    {
+      "id": "mika",
+      "displayName": "Mika",
+      "handles": [
+        { "platform": "imessage", "handle": "+81-9011110001" },
+        { "platform": "telegram", "handle": "@mika" }
+      ],
+      "preferredPlatforms": ["imessage", "telegram"],
+      "preferences": { "availability": "free", "loves": "jazz", "city": "tokyo" }
+    },
+    {
+      "id": "taro",
+      "displayName": "Taro",
+      "handles": [
+        { "platform": "whatsapp", "handle": "+81-9011110002" },
+        { "platform": "telegram", "handle": "@taro" }
+      ],
+      "preferredPlatforms": ["whatsapp", "telegram"],
+      "preferences": { "availability": "free", "loves": "jazz", "city": "tokyo" }
+    },
+    {
+      "id": "ken",
+      "displayName": "Ken",
+      "handles": [
+        { "platform": "telegram", "handle": "@ken" },
+        { "platform": "discord", "handle": "ken#0001" }
+      ],
+      "preferredPlatforms": ["telegram", "discord"],
+      "preferences": { "availability": "free", "loves": "jazz", "city": "tokyo" }
+    },
+    {
+      "id": "busy1",
+      "displayName": "Hana",
+      "handles": [{ "platform": "imessage", "handle": "+81-9020000001" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy2",
+      "displayName": "Ren",
+      "handles": [{ "platform": "whatsapp", "handle": "+81-9020000002" }],
+      "preferredPlatforms": ["whatsapp"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy3",
+      "displayName": "Sora",
+      "handles": [{ "platform": "telegram", "handle": "@sora" }],
+      "preferredPlatforms": ["telegram"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy4",
+      "displayName": "Yui",
+      "handles": [{ "platform": "slack", "handle": "@yui" }],
+      "preferredPlatforms": ["slack"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy5",
+      "displayName": "Kai",
+      "handles": [{ "platform": "discord", "handle": "kai#0002" }],
+      "preferredPlatforms": ["discord"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy6",
+      "displayName": "Aoi",
+      "handles": [{ "platform": "imessage", "handle": "+81-9020000006" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy7",
+      "displayName": "Riku",
+      "handles": [{ "platform": "whatsapp", "handle": "+81-9020000007" }],
+      "preferredPlatforms": ["whatsapp"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy8",
+      "displayName": "Nao",
+      "handles": [{ "platform": "telegram", "handle": "@nao" }],
+      "preferredPlatforms": ["telegram"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy9",
+      "displayName": "Emi",
+      "handles": [{ "platform": "slack", "handle": "@emi" }],
+      "preferredPlatforms": ["slack"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "busy10",
+      "displayName": "Jun",
+      "handles": [{ "platform": "discord", "handle": "jun#0010" }],
+      "preferredPlatforms": ["discord"],
+      "preferences": { "availability": "busy" }
+    },
+    {
+      "id": "travel1",
+      "displayName": "Lena",
+      "handles": [{ "platform": "imessage", "handle": "+1-4150000001" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "availability": "traveling" }
+    },
+    {
+      "id": "travel2",
+      "displayName": "Omar",
+      "handles": [{ "platform": "whatsapp", "handle": "+1-4150000002" }],
+      "preferredPlatforms": ["whatsapp"],
+      "preferences": { "availability": "traveling" }
+    },
+    {
+      "id": "travel3",
+      "displayName": "Priya",
+      "handles": [{ "platform": "telegram", "handle": "@priya" }],
+      "preferredPlatforms": ["telegram"],
+      "preferences": { "availability": "traveling" }
+    },
+    {
+      "id": "travel4",
+      "displayName": "Sven",
+      "handles": [{ "platform": "slack", "handle": "@sven" }],
+      "preferredPlatforms": ["slack"],
+      "preferences": { "availability": "traveling" }
+    },
+    {
+      "id": "travel5",
+      "displayName": "Tara",
+      "handles": [{ "platform": "discord", "handle": "tara#0005" }],
+      "preferredPlatforms": ["discord"],
+      "preferences": { "availability": "traveling" }
+    },
+    {
+      "id": "decline1",
+      "displayName": "Mei",
+      "handles": [{ "platform": "imessage", "handle": "+81-9030000001" }],
+      "preferredPlatforms": ["imessage"],
+      "preferences": { "availability": "declined-recently" }
+    },
+    {
+      "id": "decline2",
+      "displayName": "Raj",
+      "handles": [{ "platform": "whatsapp", "handle": "+91-9800000002" }],
+      "preferredPlatforms": ["whatsapp"],
+      "preferences": { "availability": "declined-recently" }
+    }
+  ],
+  "relationships": [
+    {
+      "fromId": "yuri",
+      "toId": "alex",
+      "type": "met-once",
+      "lastContactAt": "2026-04-17T00:00:00.000Z",
+      "tags": ["conf"]
+    },
+    {
+      "fromId": "alex",
+      "toId": "yuri",
+      "type": "met-once",
+      "lastContactAt": "2026-04-17T00:00:00.000Z",
+      "tags": ["conf"]
+    },
+    {
+      "fromId": "yuri",
+      "toId": "mika",
+      "type": "friend",
+      "lastContactAt": "2026-03-10T00:00:00.000Z",
+      "tags": ["jazz", "tokyo"]
+    },
+    {
+      "fromId": "yuri",
+      "toId": "taro",
+      "type": "friend",
+      "lastContactAt": "2026-03-12T00:00:00.000Z",
+      "tags": ["jazz", "tokyo"]
+    },
+    {
+      "fromId": "yuri",
+      "toId": "ken",
+      "type": "friend",
+      "lastContactAt": "2026-03-15T00:00:00.000Z",
+      "tags": ["jazz", "tokyo"]
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy1",
+      "type": "colleague",
+      "lastContactAt": "2026-04-01T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy2",
+      "type": "colleague",
+      "lastContactAt": "2026-04-02T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy3",
+      "type": "friend",
+      "lastContactAt": "2026-04-03T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy4",
+      "type": "colleague",
+      "lastContactAt": "2026-04-04T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy5",
+      "type": "friend",
+      "lastContactAt": "2026-04-05T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy6",
+      "type": "friend",
+      "lastContactAt": "2026-04-06T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy7",
+      "type": "colleague",
+      "lastContactAt": "2026-04-07T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy8",
+      "type": "friend",
+      "lastContactAt": "2026-04-08T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy9",
+      "type": "collaborator",
+      "lastContactAt": "2026-04-09T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "busy10",
+      "type": "friend",
+      "lastContactAt": "2026-04-10T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "travel1",
+      "type": "friend",
+      "lastContactAt": "2026-02-01T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "travel2",
+      "type": "friend",
+      "lastContactAt": "2026-02-02T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "travel3",
+      "type": "collaborator",
+      "lastContactAt": "2026-02-03T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "travel4",
+      "type": "friend",
+      "lastContactAt": "2026-02-04T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "travel5",
+      "type": "runs-with",
+      "lastContactAt": "2026-02-05T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "decline1",
+      "type": "friend",
+      "lastContactAt": "2026-04-15T00:00:00.000Z",
+      "tags": []
+    },
+    {
+      "fromId": "yuri",
+      "toId": "decline2",
+      "type": "friend",
+      "lastContactAt": "2026-04-14T00:00:00.000Z",
+      "tags": []
+    }
+  ]
+}
