@@ -8,6 +8,7 @@ import { BroadcastStoreSqlite, IntentStoreSqlite } from '../core/stores.ts';
 import { humanize } from '../core/humanize.ts';
 import { SpectrumMessenger, bootSpectrum } from '../messaging/spectrum.ts';
 import { consoleNarrator, elapsed, startNarrationClock } from './format.ts';
+import { jsonlSink } from './events.ts';
 import type { Person } from '../engram/types.ts';
 
 // runtime/dev.ts — scripted scenario runner invoked by the 'dev' npm script.
@@ -66,6 +67,9 @@ async function main() {
   const narrator = consoleNarrator();
   const clock = startNarrationClock();
 
+  const eventsPath = process.env.ENTANGLE_EVENTS_PATH ?? '.entangle/events.jsonl';
+  const events = jsonlSink(eventsPath);
+
   const deps = {
     graph,
     intents,
@@ -73,6 +77,7 @@ async function main() {
     messenger,
     humanize: humanize(),
     now: () => new Date(),
+    events,
   };
 
   try {

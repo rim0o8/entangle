@@ -6,6 +6,7 @@ import { BroadcastStoreSqlite, IntentStoreSqlite } from '../src/core/stores.ts';
 import { stubHumanizer } from '../src/core/humanize.ts';
 import { MemoryMessenger } from '../src/messaging/memory.ts';
 import { consoleNarrator, elapsed, startNarrationClock } from '../src/runtime/format.ts';
+import { jsonlSink } from '../src/runtime/events.ts';
 
 // examples/double-yes.ts — scripted Double Yes walk-through against an
 // in-memory messenger. No credentials required. Useful for reviewing the
@@ -24,6 +25,8 @@ const alex = (await graph.getPerson('alex'))!;
 const messenger = new MemoryMessenger();
 const narrator = consoleNarrator();
 const clock = startNarrationClock();
+const eventsPath = process.env.ENTANGLE_EVENTS_PATH ?? '.entangle/events.jsonl';
+const events = jsonlSink(eventsPath);
 const deps = {
   graph,
   intents,
@@ -31,6 +34,7 @@ const deps = {
   messenger,
   humanize: stubHumanizer(),
   now: () => new Date(),
+  events,
 };
 
 narrator.header('entangle example \u2014 Double Yes (in-memory)');

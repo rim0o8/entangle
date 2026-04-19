@@ -66,6 +66,20 @@ export interface Humanizer {
   renderBubbleUp(probe: BroadcastProbe, yesResponders: Person[]): Promise<string>;
 }
 
+
+
+export type ProtocolEvent =
+  | { kind: 'sealed'; at: Date; intentId: string; ownerPersonId: string; targetPersonId: string }
+  | { kind: 'matched'; at: Date; intentId: string; counterpartId: string }
+  | { kind: 'probed'; at: Date; probeId: string; ownerPersonId: string; deliveredTo: string[]; suppressed: string[] }
+  | { kind: 'suppressed'; at: Date; probeId: string; personId: string; reason: 'no-relationship' | 'not-free' | 'unknown-person' | 'no-handle' }
+  | { kind: 'response'; at: Date; probeId: string; personId: string; response: 'yes' | 'no' | 'silent' }
+  | { kind: 'bubble-up'; at: Date; probeId: string; ownerPersonId: string; yesPersonIds: string[] };
+
+export interface EventSink {
+  emit(event: ProtocolEvent): void;
+}
+
 export interface ProtocolDeps {
   graph: IdentityGraph;
   messenger: Messenger;
@@ -73,4 +87,5 @@ export interface ProtocolDeps {
   probes: BroadcastStore;
   humanize: Humanizer;
   now: () => Date;
+  events?: EventSink;
 }

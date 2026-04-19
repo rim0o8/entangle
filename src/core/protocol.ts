@@ -41,6 +41,13 @@ export async function sealedIntent(
     state: 'sealed',
   };
   await d.intents.put(intent);
+  d.events?.emit({
+    kind: 'sealed',
+    at: now,
+    intentId: intent.id,
+    ownerPersonId: intent.ownerPersonId,
+    targetPersonId: intent.targetPersonId,
+  });
   return intent;
 }
 
@@ -81,6 +88,12 @@ export async function detectMutual(
     d.messenger.send(targetHandle, { text: textForTarget, kind: 'notice' }),
   ]);
 
+  d.events?.emit({
+    kind: 'matched',
+    at: d.now(),
+    intentId: intent.id,
+    counterpartId: counterpart.id,
+  });
   return { matched: true, counterpart };
 }
 
@@ -120,24 +133,60 @@ export async function quietBroadcast(
   };
   await d.probes.put(probe);
 
+  const deliveredTo: string[] = [];
+  const suppressed: string[] = [];
   await Promise.all(
     input.candidates.map(async (c) => {
-      const verdict = await filterCandidate(d, input.owner.id, c.id);
-      if (verdict === 'suppress') {
+      const reason = await suppressReason(d, input.owner.id, c);
+      if (reason !== null) {
         await d.probes.recordResponse(probe.id, c.id, 'silent');
+        d.events?.emit({
+          kind: 'suppressed',
+          at: d.now(),
+          probeId: probe.id,
+          personId: c.id,
+          reason,
+        });
+        suppressed.push(c.id);
         return;
       }
       const text = await d.humanize.renderProbe(probe, c);
       const handle = c.handles[0];
       if (!handle) {
         await d.probes.recordResponse(probe.id, c.id, 'silent');
+        suppressed.push(c.id);
         return;
       }
       await d.messenger.send(handle, { text, kind: 'prompt' });
+      deliveredTo.push(c.id);
     }),
   );
+  d.events?.emit({
+    kind: 'probed',
+    at: d.now(),
+    probeId: probe.id,
+    ownerPersonId: probe.ownerPersonId,
+    deliveredTo,
+    suppressed,
+  });
 
   return probe;
+}
+
+// suppressReason mirrors filterCandidate but returns a typed reason for
+// observability. It is intentionally kept in sync with filterCandidate; any
+// divergence is a bug.
+async function suppressReason(
+  d: ProtocolDeps,
+  ownerId: string,
+  candidate: Person,
+): Promise<'not-free' | 'no-relationship' | null> {
+  const p = await d.graph.getPerson(candidate.id);
+  if (!p) return 'no-relationship';
+  if (p.availability !== 'free') return 'not-free';
+  const rel = await d.graph.getRelationship(ownerId, candidate.id);
+  if (!rel) return 'no-relationship';
+  return null;
 }
 
 function addDays(from: Date, days: number): Date {
