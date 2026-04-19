@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { EngramLite } from '../engram/lite.js';
 import { loadSeed } from '../engram/seed.js';
 import type { Person } from '../engram/types.js';
-import { createInProcessChannel } from '../spectrum/inprocess.js';
+import { createMockChannel } from '../spectrum/mock.js';
 import { createEventLog } from './events.js';
 import { createStubHumanizer } from './humanize.js';
 import { detectMutual, filterCandidate, quietBroadcast, sealedIntent } from './protocol.js';
@@ -20,7 +20,7 @@ interface TestEnv {
   dbPath: string;
   yuri: Person;
   alex: Person;
-  channel: ReturnType<typeof createInProcessChannel>;
+  channel: ReturnType<typeof createMockChannel>;
   intentStore: ReturnType<typeof createIntentStore>;
   broadcastStore: ReturnType<typeof createBroadcastStore>;
   events: ReturnType<typeof createEventLog>;
@@ -36,7 +36,7 @@ async function makeEnv(): Promise<TestEnv> {
   const yuri = await engram.getPerson('yuri');
   const alex = await engram.getPerson('alex');
   if (!yuri || !alex) throw new Error('seed bad');
-  const channel = createInProcessChannel();
+  const channel = createMockChannel();
   const intentStore = createIntentStore();
   const broadcastStore = createBroadcastStore();
   const events = createEventLog();

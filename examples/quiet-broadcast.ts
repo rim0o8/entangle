@@ -13,7 +13,7 @@ import { createBroadcastStore } from '../src/core/store.js';
 import type { EntangleEvent } from '../src/core/types.js';
 import { EngramLite } from '../src/engram/lite.js';
 import { loadSeed } from '../src/engram/seed.js';
-import { createInProcessChannel } from '../src/spectrum/inprocess.js';
+import { createMockChannel } from '../src/spectrum/mock.js';
 
 const REPO_ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SEED_PATH = join(REPO_ROOT, 'src', 'engram', 'seed.json');
@@ -61,7 +61,7 @@ async function main(): Promise<void> {
     const candidates = allFriends.filter((f) => f.id !== 'alex');
     if (candidates.length !== 20) fail(`expected 20 candidates, got ${candidates.length}`);
 
-    const channel = createInProcessChannel();
+    const channel = createMockChannel();
     const store = createBroadcastStore();
     const events = createEventLog();
     events.subscribe((e) => console.log(formatEvent(e)));
@@ -93,15 +93,18 @@ async function main(): Promise<void> {
     const suppressedIds = new Set(
       suppressed.map((e) => (e.type === 'suppressed' ? e.candidateId : ''))
     );
+    const platformSummary: string[] = [];
     for (const s of channel.sent) {
       const candidate = candidates.find((c) =>
-        c.handles.some((h) => h.platform === s.to.platform && h.handle === s.to.handle)
+        c.handles.some((h) => h.platform === s.platform && h.handle === s.handle)
       );
-      if (!candidate) fail(`unknown candidate for send to ${s.to.platform}:${s.to.handle}`);
+      if (!candidate) fail(`unknown candidate for send to ${s.platform}:${s.handle}`);
       if (suppressedIds.has(candidate.id)) {
         fail(`suppressed candidate ${candidate.id} received a send`);
       }
+      platformSummary.push(`${candidate.id}<-${s.platform}`);
     }
+    console.log(`[platforms] ${platformSummary.join(' ')}`);
 
     // 3 free candidates = mika, taro, ken. 2 yes (mika, taro), 1 no (ken).
     recordBroadcastResponse(deps, probe.id, 'mika', 'yes');

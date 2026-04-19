@@ -9,7 +9,7 @@ import { createIntentStore } from '../src/core/store.js';
 import type { EntangleEvent } from '../src/core/types.js';
 import { EngramLite } from '../src/engram/lite.js';
 import { loadSeed } from '../src/engram/seed.js';
-import { createInProcessChannel } from '../src/spectrum/inprocess.js';
+import { createMockChannel } from '../src/spectrum/mock.js';
 
 const REPO_ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SEED_PATH = join(REPO_ROOT, 'src', 'engram', 'seed.json');
@@ -73,7 +73,7 @@ async function main(): Promise<void> {
     });
     if (!yuri || !alex) fail('could not resolve yuri or alex');
 
-    const channel = createInProcessChannel();
+    const channel = createMockChannel();
     const store = createIntentStore();
     const events = createEventLog();
     events.subscribe((e) => console.log(formatEvent(e)));
@@ -113,10 +113,10 @@ async function main(): Promise<void> {
     if (!check3.ok) fail(check3.message);
 
     const sendsToYuri = channel.sent.filter((s) =>
-      yuri.handles.some((h) => h.platform === s.to.platform && h.handle === s.to.handle)
+      yuri.handles.some((h) => h.platform === s.platform && h.handle === s.handle)
     );
     const sendsToAlex = channel.sent.filter((s) =>
-      alex.handles.some((h) => h.platform === s.to.platform && h.handle === s.to.handle)
+      alex.handles.some((h) => h.platform === s.platform && h.handle === s.handle)
     );
 
     const check4 = assert(
@@ -130,6 +130,26 @@ async function main(): Promise<void> {
       `expected 1 send each to yuri and alex, got yuri=${sendsToYuri.length} alex=${sendsToAlex.length}`
     );
     if (!check5.ok) fail(check5.message);
+
+    const yuriSend = sendsToYuri[0];
+    const alexSend = sendsToAlex[0];
+    if (!yuriSend || !alexSend) fail('missing send records');
+    // Spectrum adapter now records the platform of the actual handle used for
+    // delivery. Verify each send is tagged with one of that person's handle
+    // platforms (not hard-coded) so the demo UI can pick the right phone frame.
+    const yuriPlatforms = new Set(yuri.handles.map((h) => h.platform));
+    const alexPlatforms = new Set(alex.handles.map((h) => h.platform));
+    const check5a = assert(
+      yuriPlatforms.has(yuriSend.platform),
+      `yuri send platform must be one of ${[...yuriPlatforms].join('|')}, got ${yuriSend.platform}`
+    );
+    if (!check5a.ok) fail(check5a.message);
+    const check5b = assert(
+      alexPlatforms.has(alexSend.platform),
+      `alex send platform must be one of ${[...alexPlatforms].join('|')}, got ${alexSend.platform}`
+    );
+    if (!check5b.ok) fail(check5b.message);
+    console.log(`[platforms] yuri<-${yuriSend.platform} alex<-${alexSend.platform}`);
 
     const reveals = events.snapshot().filter((e) => e.type === 'reveal');
     if (reveals.length !== 2) fail(`expected 2 reveal events, got ${reveals.length}`);
